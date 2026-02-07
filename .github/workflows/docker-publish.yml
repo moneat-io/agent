@@ -1,0 +1,105 @@
+name: Docker Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  DOCKERHUB_REPO: adrianelder/moneat-agent
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract version tags
+        id: meta
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          
+          # Check if this is a pre-release (contains -, like beta, alpha, rc)
+          if [[ $VERSION == *"-"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "tags=${DOCKERHUB_REPO}:${VERSION}" >> $GITHUB_OUTPUT
+          else
+            # Extract major, minor for version tags
+            MAJOR=$(echo $VERSION | cut -d. -f1)
+            MINOR=$(echo $VERSION | cut -d. -f1-2)
+            
+            TAGS="${DOCKERHUB_REPO}:${VERSION}"
+            TAGS="${TAGS},${DOCKERHUB_REPO}:${MINOR}"
+            TAGS="${TAGS},${DOCKERHUB_REPO}:${MAJOR}"
+            TAGS="${TAGS},${DOCKERHUB_REPO}:latest"
+            
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # First release, get all commits
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # Get commits since previous tag
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Save to file for GitHub release
+          echo "$CHANGELOG" > /tmp/changelog.txt
+          
+          # Also output for display
+          echo "Generated changelog from ${PREV_TAG:-initial commit} to ${GITHUB_REF#refs/tags/}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: /tmp/changelog.txt
+          prerelease: ${{ steps.meta.outputs.is_prerelease }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_REPO }}
+          short-description: "Lightweight monitoring agent for the Moneat platform"
+          readme-filepath: ./README.md
