@@ -26,7 +26,7 @@ func LoadFromEnv() *Config {
 		MoneatURL:    getEnv("MONEAT_URL", "https://api.moneat.io"),
 		AgentKey:     getEnv("MONEAT_KEY", ""),
 		PollInterval: pollInterval,
-		IngestPath:   "/api/v1/monitor/ingest",
+		IngestPath:   "/v1/monitor/ingest",
 	}
 }
 
