@@ -18,13 +18,13 @@ type SystemMetrics struct {
 	Load1  float64 `json:"load_1"`
 	Load5  float64 `json:"load_5"`
 	Load15 float64 `json:"load_15"`
-	TempMax       float64 `json:"temp_max,omitempty"`
-	GPUPercent    float64 `json:"gpu_percent,omitempty"`
-	GPUMemPercent float64 `json:"gpu_mem_percent,omitempty"`
-	GPUPower      float64 `json:"gpu_power,omitempty"`
-	BatteryPercent float64 `json:"battery_percent,omitempty"`
-	Containers []ContainerMetrics `json:"containers,omitempty"`
-	Hostname string `json:"hostname"`
+	TempMax       *float64 `json:"temp_max"`
+	GPUPercent    *float64 `json:"gpu_percent"`
+	GPUMemPercent *float64 `json:"gpu_mem_percent"`
+	GPUPower      *float64 `json:"gpu_power"`
+	BatteryPercent *float64 `json:"battery_percent"`
+	Containers []ContainerMetrics `json:"containers"`
+	Host     string `json:"host"`
 	OS       string `json:"os"`
 	Arch     string `json:"arch"`
 	Version  string `json:"agent_version"`

@@ -54,7 +54,7 @@ func NewCollector() (Collector, error) {
 func (c *LinuxCollector) Collect() (*SystemMetrics, error) {
 	metrics := &SystemMetrics{
 		Timestamp: time.Now().Unix(),
-		Hostname:  c.hostname,
+		Host:      c.hostname,
 		OS:        runtime.GOOS,
 		Arch:      runtime.GOARCH,
 		Version:   AgentVersion,
@@ -292,7 +292,7 @@ func (c *LinuxCollector) collectTemperature(m *SystemMetrics) {
 	}
 	
 	if maxTemp > 0 {
-		m.TempMax = maxTemp
+		m.TempMax = &maxTemp
 	}
 }
 
@@ -302,9 +302,12 @@ func (c *LinuxCollector) collectGPU(m *SystemMetrics) {
 	if err == nil {
 		fields := strings.Split(strings.TrimSpace(string(output)), ",")
 		if len(fields) >= 3 {
-			m.GPUPercent, _ = strconv.ParseFloat(strings.TrimSpace(fields[0]), 64)
-			m.GPUMemPercent, _ = strconv.ParseFloat(strings.TrimSpace(fields[1]), 64)
-			m.GPUPower, _ = strconv.ParseFloat(strings.TrimSpace(fields[2]), 64)
+			gpuPercent, _ := strconv.ParseFloat(strings.TrimSpace(fields[0]), 64)
+			gpuMemPercent, _ := strconv.ParseFloat(strings.TrimSpace(fields[1]), 64)
+			gpuPower, _ := strconv.ParseFloat(strings.TrimSpace(fields[2]), 64)
+			m.GPUPercent = &gpuPercent
+			m.GPUMemPercent = &gpuMemPercent
+			m.GPUPower = &gpuPower
 			return
 		}
 	}
@@ -325,6 +328,6 @@ func (c *LinuxCollector) collectBattery(m *SystemMetrics) {
 	
 	capacity, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
 	if err == nil {
-		m.BatteryPercent = capacity
+		m.BatteryPercent = &capacity
 	}
 }
