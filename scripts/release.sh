@@ -82,6 +82,41 @@ fi
 echo -e "${GREEN}Pulling latest changes...${NC}"
 git pull --rebase
 
+# Run build validation
+echo ""
+echo -e "${GREEN}Running build validation...${NC}"
+echo "----------------------------------------"
+
+# Check if go is installed
+if ! command -v go &> /dev/null; then
+    echo -e "${RED}Error: Go is not installed${NC}"
+    exit 1
+fi
+
+# Download dependencies
+echo "Downloading dependencies..."
+if ! go mod download; then
+    echo -e "${RED}Error: Failed to download Go modules${NC}"
+    exit 1
+fi
+
+# Run build
+echo "Building project..."
+if ! go build ./...; then
+    echo -e "${RED}Error: Build failed${NC}"
+    exit 1
+fi
+
+# Run tests
+echo "Running tests..."
+if ! go test ./...; then
+    echo -e "${RED}Error: Tests failed${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Build validation passed${NC}"
+echo ""
+
 # Display what will be released
 echo ""
 echo "========================================="

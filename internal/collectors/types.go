@@ -1,9 +1,5 @@
 package collectors
 
-import (
-	"time"
-)
-
 type SystemMetrics struct {
 	Timestamp    int64     `json:"timestamp"`
 	CPUPercent   float64   `json:"cpu_percent"`
