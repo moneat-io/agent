@@ -12,8 +12,10 @@ Lightweight monitoring agent that collects system and container metrics and send
 docker run -d --name moneat-agent \
   --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e DOCKER_HOST="unix:///var/run/docker.sock" \
   -e MONEAT_KEY="<your-agent-key>" \
   -e MONEAT_URL="https://api.moneat.io" \
+  -e MONEAT_LOGS=true \
   adrianelder/moneat-agent:latest
 ```
 
@@ -23,7 +25,16 @@ docker run -d --name moneat-agent \
 |----------|----------|---------|-------------|
 | `MONEAT_KEY` | Yes | - | Agent authentication key (from dashboard) |
 | `MONEAT_URL` | No | `https://api.moneat.io` | Moneat API endpoint |
+| `DOCKER_HOST` | No | `unix:///var/run/docker.sock` | Docker Engine API endpoint used for container metrics |
 | `POLL_INTERVAL` | No | `60` | Initial poll interval in seconds (server-controlled) |
+| `MONEAT_LOGS` | No | `false` | Enable container log collection |
+| `MONEAT_LOG_MODE` | No | `all` | Log collection mode: `all`, `label`, `include`, `exclude` |
+| `MONEAT_LOG_CONTAINERS` | No | - | Comma-separated container names for `include` mode |
+| `MONEAT_LOG_EXCLUDE` | No | - | Comma-separated container names to exclude (`exclude`/`all` modes) |
+| `MONEAT_LOG_BATCH_SIZE` | No | `100` | Max log lines per batch upload |
+| `MONEAT_LOG_BATCH_INTERVAL` | No | `5` | Seconds between log batch flushes |
+| `MONEAT_LOG_DISCOVERY_INTERVAL` | No | `10` | Seconds between Docker container discovery passes |
+| `MONEAT_LOG_PROJECT_ID` | No | - | Optional explicit project ID for `/v1/monitor/logs` payload |
 
 ## Collected Metrics
 
@@ -36,10 +47,56 @@ docker run -d --name moneat-agent \
 - **GPU**: Nvidia, AMD, and Intel GPU utilization (if available)
 - **Battery**: Charge percentage (if available)
 - **Docker**: Per-container CPU, memory, and network usage
+- **Container Logs**: `stdout`/`stderr` streams with batched forwarding and label/tag enrichment
 
 ## Docker Socket
 
 The agent needs read-only access to `/var/run/docker.sock` to collect container metrics. If you don't want to monitor containers, you can omit the volume mount.
+
+## Container Log Collection
+
+Set `MONEAT_LOGS=true` to enable log shipping from Docker containers to `POST /v1/monitor/logs`.
+
+### Mode 1: Collect all containers (default)
+
+```bash
+-e MONEAT_LOGS=true
+```
+
+### Mode 2: Include/exclude by container name
+
+```bash
+# Include only specific containers
+-e MONEAT_LOGS=true \
+-e MONEAT_LOG_MODE=include \
+-e MONEAT_LOG_CONTAINERS="web,api,worker"
+
+# Or exclude specific containers
+-e MONEAT_LOGS=true \
+-e MONEAT_LOG_MODE=exclude \
+-e MONEAT_LOG_EXCLUDE="redis,postgres,clickhouse"
+```
+
+If `MONEAT_LOG_MODE` is not set, `MONEAT_LOG_CONTAINERS` implies `include` mode and `MONEAT_LOG_EXCLUDE` implies `exclude` mode.
+
+### Mode 3: Label-driven opt-in
+
+```bash
+-e MONEAT_LOGS=true \
+-e MONEAT_LOG_MODE=label
+```
+
+Then annotate containers:
+
+```yaml
+services:
+  web:
+    labels:
+      moneat.logs: "true"
+      moneat.logs.service: "web-api"
+      moneat.logs.environment: "production"
+      moneat.logs.tags: "team=backend,component=auth"
+```
 
 ## Architecture
 
