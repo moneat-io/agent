@@ -83,6 +83,32 @@ docker buildx build --platform linux/amd64,linux/arm64 -t moneat-agent .
 
 For maintainers creating releases, see [RELEASING.md](RELEASING.md).
 
+## Local Development
+
+### Run Locally
+
+```bash
+# Set required environment variables
+export MONEAT_KEY="your-test-key"
+export MONEAT_URL="https://api.moneat.io"  # or your local/test API endpoint
+
+# Build and run
+go build -o moneat-agent ./cmd/moneat-agent && ./moneat-agent
+```
+
+### Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run tests with verbose output
+go test -v ./...
+```
+
 ## Supported Platforms
 
 - Linux (amd64, arm64)
