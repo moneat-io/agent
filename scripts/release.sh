@@ -102,7 +102,7 @@ fi
 
 # Run build
 echo "Building project..."
-if ! go build ./...; then
+if ! go build -ldflags "-X github.com/moneat/agent/internal/collectors.AgentVersion=${VERSION}" ./...; then
     echo -e "${RED}Error: Build failed${NC}"
     exit 1
 fi

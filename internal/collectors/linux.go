@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const AgentVersion = "1.0.0"
+var AgentVersion = "dev"
 
 type LinuxCollector struct {
 	hostname     string
@@ -71,6 +71,11 @@ func (c *LinuxCollector) Collect() (*SystemMetrics, error) {
 	
 	if containers, err := collectDockerMetrics(); err == nil {
 		metrics.Containers = containers
+	} else {
+		// Only log permission errors or connection refused to avoid spamming on non-docker systems
+		if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "connect: connection refused") {
+			fmt.Printf("Warning: Failed to collect Docker metrics: %v\n", err)
+		}
 	}
 	
 	return metrics, nil
