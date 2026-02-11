@@ -22,7 +22,7 @@ import (
 
 const (
 	dockerSocketPath = "/var/run/docker.sock"
-	defaultAPIVer    = "v1.41"
+	defaultAPIVer    = "v1.44"
 )
 
 type Manager struct {
@@ -190,7 +190,7 @@ func (m *Manager) stopAllWatchers() {
 }
 
 func (m *Manager) listContainers(ctx context.Context) ([]dockerContainer, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/%s/containers/json?all=0", defaultAPIVer), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://unix/%s/containers/json?all=0", dockerAPIVersion()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (m *Manager) watchContainer(ctx context.Context, meta containerMeta) {
 func (m *Manager) streamContainerLogs(ctx context.Context, meta containerMeta, since *int64) error {
 	url := fmt.Sprintf(
 		"http://unix/%s/containers/%s/logs?follow=1&stdout=1&stderr=1&timestamps=1&tail=0&since=%d",
-		defaultAPIVer,
+		dockerAPIVersion(),
 		meta.ID,
 		*since,
 	)
@@ -502,6 +502,20 @@ func (m *Manager) flushBatch(batch []transport.AgentLogEntry) error {
 	}
 
 	return nil
+}
+
+func dockerAPIVersion() string {
+	apiVersion := strings.TrimSpace(os.Getenv("DOCKER_API_VERSION"))
+	if apiVersion == "" {
+		return defaultAPIVer
+	}
+
+	apiVersion = strings.TrimPrefix(apiVersion, "/")
+	if !strings.HasPrefix(apiVersion, "v") {
+		apiVersion = "v" + apiVersion
+	}
+
+	return apiVersion
 }
 
 type triBool int

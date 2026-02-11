@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultDockerHost   = "unix:///var/run/docker.sock"
-	defaultDockerAPIVer = "v1.41"
+	defaultDockerAPIVer = "v1.44"
 )
 
 type dockerContainerSummary struct {
@@ -122,7 +122,7 @@ func newDockerClient() (*http.Client, string, error) {
 }
 
 func listContainers(client *http.Client, baseURL string) ([]dockerContainerSummary, error) {
-	reqURL := fmt.Sprintf("%s/%s/containers/json?all=0", strings.TrimRight(baseURL, "/"), defaultDockerAPIVer)
+	reqURL := fmt.Sprintf("%s/%s/containers/json?all=0", strings.TrimRight(baseURL, "/"), dockerAPIVersion())
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func getContainerStats(client *http.Client, baseURL, containerID string) (*docke
 	reqURL := fmt.Sprintf(
 		"%s/%s/containers/%s/stats?stream=false",
 		strings.TrimRight(baseURL, "/"),
-		defaultDockerAPIVer,
+		dockerAPIVersion(),
 		pathEscapeSegment(containerID),
 	)
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
@@ -250,4 +250,18 @@ func pathEscapeSegment(value string) string {
 	escaped := url.PathEscape(value)
 	// Keep compatibility with Docker API paths: avoid escaping path separators in IDs.
 	return strings.ReplaceAll(escaped, "%2F", "/")
+}
+
+func dockerAPIVersion() string {
+	apiVersion := strings.TrimSpace(os.Getenv("DOCKER_API_VERSION"))
+	if apiVersion == "" {
+		return defaultDockerAPIVer
+	}
+
+	apiVersion = strings.TrimPrefix(apiVersion, "/")
+	if !strings.HasPrefix(apiVersion, "v") {
+		apiVersion = "v" + apiVersion
+	}
+
+	return apiVersion
 }

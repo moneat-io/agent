@@ -26,6 +26,7 @@ docker run -d --name moneat-agent \
 | `MONEAT_KEY` | Yes | - | Agent authentication key (from dashboard) |
 | `MONEAT_URL` | No | `https://api.moneat.io` | Moneat API endpoint |
 | `DOCKER_HOST` | No | `unix:///var/run/docker.sock` | Docker Engine API endpoint used for container metrics |
+| `DOCKER_API_VERSION` | No | `v1.44` | Docker Engine API version path used by the agent (e.g. `v1.44` or `1.44`) |
 | `POLL_INTERVAL` | No | `60` | Initial poll interval in seconds (server-controlled) |
 | `MONEAT_LOGS` | No | `false` | Enable container log collection |
 | `MONEAT_LOG_MODE` | No | `all` | Log collection mode: `all`, `label`, `include`, `exclude` |
